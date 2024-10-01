@@ -1,6 +1,8 @@
 import os
-import glob
 import shutil
+import time
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 
 extension_types = {
     'images': ['jpg', 'png', 'webp'],
@@ -17,33 +19,33 @@ def get_category(extension):
             return category
     return 'others'
 
-# Change the current working directory to "C:/Users/rahal/Downloads"
-os.chdir("C:/Users/rahal/Downloads")
+class Watcher:
+    DIRECTORY_TO_WATCH = "C:/Users/rahal/Downloads"
 
-current_directory = os.getcwd()  # Get the updated current directory
-print("Current directory:", current_directory)
+    def __init__(self):
+        self.observer = Observer()
 
-files = os.listdir(current_directory)
+    def run(self):
+        event_handler = Handler()
+        self.observer.schedule(event_handler, self.DIRECTORY_TO_WATCH, recursive=True)
+        self.observer.start()
+        try:
+            while True:
+                time.sleep(5)
+        except:
+            self.observer.stop()
+            print("Observer Stopped")
 
-extensions = []
-folders = []
+        self.observer.join()
 
-for file in files :
-    if(not os.path.isdir(f"{current_directory}/{file}")):
-        e = file.split(".")
-        x = e[len(e)-1]
-        folder = f'{current_directory}/{get_category(x)}'
-        if(not os.path.isdir(folder)):
-            os.mkdir(folder)
-            shutil.move(f"{current_directory}/{file}",f"{current_directory}/{get_category(x)}/{file}")
-        else :
-            shutil.move(f"{current_directory}/{file}",f"{current_directory}/{get_category(x)}/{file}")
-        
-    else:
-        if(not os.path.isdir(f'{current_directory}/folders')):
-            os.mkdir(f'{current_directory}/folders')
-            shutil.move(f"{current_directory}/{file}",f"{current_directory}/folders/{file}")
-        else :
-            shutil.move(f"{current_directory}/{file}",f"{current_directory}/folders/{file}")
-        folders.append(file)
+class Handler(FileSystemEventHandler):
+    @staticmethod
+    def on_created(event):
+        if not event.is_directory:
+            print(f"File {event.src_path} has been created")
+            # Trigger your Python script or function here
+            os.system('classify_file.py')
 
+if __name__ == '__main__':
+    w = Watcher()
+    w.run()
